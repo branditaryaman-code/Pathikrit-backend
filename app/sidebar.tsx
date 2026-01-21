@@ -24,7 +24,7 @@ const Sidebar: React.FC = () => {
         <ul className="main-menu">
           {/* Dashboard */}
           <li>
-            <a href= "/Dashboard" className="active">
+            <a href= "/dashboard" className="active">
               <span className="icon-menu feather-icon">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -67,12 +67,7 @@ const Sidebar: React.FC = () => {
 
           
 
-           {/* ===== Login Section ===== */}
-           <li>
-  <a href="/login">
-    <span className="menu-text">Login</span>
-  </a>
-</li>
+          
 
 
 
@@ -111,6 +106,19 @@ const Sidebar: React.FC = () => {
                             </span>
                             <span className="menu-text">
                                Doctors
+                            </span>
+                        </a>
+                    </li>
+
+
+                  {/* ===== Symptoms Section ===== */}
+                    <li>
+                        <a href="/symptoms">
+                            <span className="icon-menu feather-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-users"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                            </span>
+                            <span className="menu-text">
+                              Symptoms
                             </span>
                         </a>
                     </li>
@@ -214,12 +222,12 @@ const Sidebar: React.FC = () => {
 
   {isStaticOpen && (
     <ul className="submenu">
-      <li><a href="/static/about">About</a></li>
-      <li><a href="/static/mission">Our Mission</a></li>
-       <li><a href="/static/vision">Our Vision</a></li>
-      <li><a href="/static/terms">Terms & Conditions</a></li>
-      <li><a href="/static/privacy">Privacy Policy</a></li>
-      <li><a href="/static/cancellation">Cancellation Policy</a></li>
+      <li><a href="/about">About</a></li>
+      <li><a href="/mission">Our Mission</a></li>
+       <li><a href="/vision">Our Vision</a></li>
+      <li><a href="/terms">Terms & Conditions</a></li>
+      <li><a href="/privacy">Privacy Policy</a></li>
+      <li><a href="/cancellation">Cancellation Policy</a></li>
     </ul>
   )}
 </li>

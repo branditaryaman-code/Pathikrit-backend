@@ -1,25 +1,49 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { collection, getDocs, updateDoc, doc } from "firebase/firestore";
+import { db } from "@/firebase/firebase.config";
 
-type AboutForm = {
-  title: string;
-  shortDescription: string;
-  mainContent: string;
+type MissionForm = {
+  PageTitle: string;
+  MissionStatement: string;
+  CoreValues: string;
 };
 
-export default function AboutPageCard() {
-  const [formData, setFormData] = useState<AboutForm>({
-    title: "About Us",
-    shortDescription:
-      "We are a healthcare platform dedicated to making medical services more accessible, transparent, and reliable.",
-    mainContent: `Our platform connects patients with trusted doctors, labs, and pharmacies.
-We focus on quality healthcare, transparency, and seamless digital experience.
-Our mission is to bridge the gap between patients and healthcare providers.`,
+export default function MissionPageCard() {
+  const [docId, setDocId] = useState<string | null>(null);
+
+  const [formData, setFormData] = useState<MissionForm>({
+    PageTitle: "",
+    MissionStatement: "",
+    CoreValues: "",
   });
 
   const [isSaving, setIsSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  /* ================= FETCH ================= */
+
+  useEffect(() => {
+    const fetchMission = async () => {
+      const snap = await getDocs(collection(db, "ourmission"));
+      if (!snap.empty) {
+        const d = snap.docs[0];
+        setDocId(d.id);
+
+        const data = d.data();
+        setFormData({
+          PageTitle: data.PageTitle || "",
+          MissionStatement: data.MissionStatement || "",
+          CoreValues: data.CoreValues || "",
+        });
+      }
+    };
+
+    fetchMission();
+  }, []);
+
+  /* ================= CHANGE ================= */
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -28,16 +52,20 @@ Our mission is to bridge the gap between patients and healthcare providers.`,
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  /* ================= UPDATE ================= */
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // 🔥 critical
+    e.preventDefault();
+    if (!docId) return;
 
     setIsSaving(true);
     setSuccess(false);
 
-    // 🔗 Later: replace with real API call
-    console.log("About Page Saved:", formData);
-
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await updateDoc(doc(db, "ourmission", docId), {
+      PageTitle: formData.PageTitle,
+      MissionStatement: formData.MissionStatement,
+      CoreValues: formData.CoreValues,
+    });
 
     setIsSaving(false);
     setSuccess(true);
@@ -46,7 +74,7 @@ Our mission is to bridge the gap between patients and healthcare providers.`,
   return (
     <div className="card table-card">
       <div className="card-header pb-0">
-        <h4>About Page Content</h4>
+        <h4>Our Mission Page Content</h4>
       </div>
 
       <div className="card-body">
@@ -59,37 +87,37 @@ Our mission is to bridge the gap between patients and healthcare providers.`,
                 <label>Page Title</label>
                 <input
                   type="text"
-                  name="title"
+                  name="PageTitle"
                   className="form-control"
-                  value={formData.title}
+                  value={formData.PageTitle}
                   onChange={handleChange}
                 />
               </div>
             </div>
 
-            {/* Short Description */}
+            {/* Mission Statement */}
             <div className="col-md-12">
               <div className="form-group">
-                <label>Short Description</label>
+                <label>Mission Statement</label>
                 <textarea
-                  name="shortDescription"
-                  className="form-control"
-                  rows={3}
-                  value={formData.shortDescription}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            {/* Main Content */}
-            <div className="col-md-12">
-              <div className="form-group">
-                <label>Main Content</label>
-                <textarea
-                  name="mainContent"
+                  name="MissionStatement"
                   className="form-control"
                   rows={6}
-                  value={formData.mainContent}
+                  value={formData.MissionStatement}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
+            {/* Core Values */}
+            <div className="col-md-12">
+              <div className="form-group">
+                <label>Core Values</label>
+                <textarea
+                  name="CoreValues"
+                  className="form-control"
+                  rows={5}
+                  value={formData.CoreValues}
                   onChange={handleChange}
                 />
               </div>
@@ -100,7 +128,7 @@ Our mission is to bridge the gap between patients and healthcare providers.`,
           {/* SUCCESS MESSAGE */}
           {success && (
             <div className="alert alert-success mt-3">
-              About page updated successfully!
+              Mission page updated successfully!
             </div>
           )}
 
@@ -111,7 +139,7 @@ Our mission is to bridge the gap between patients and healthcare providers.`,
               className="btn btn-primary"
               disabled={isSaving}
             >
-              {isSaving ? "Saving..." : "Update About Page"}
+              {isSaving ? "Saving..." : "Update Mission Page"}
             </button>
           </div>
         </form>

@@ -1,6 +1,21 @@
 "use client";
+import { useRouter } from "next/navigation";
 
 export default function Header() {
+   const router = useRouter();
+
+  const handleLogout = () => {
+  // 🔥 HARD DELETE COOKIE (browser-safe)
+  document.cookie =
+    "auth=logged_in; path=/; max-age=0;";
+
+  document.cookie =
+    "auth=; path=/; max-age=0;";
+
+  // 🔄 HARD RELOAD so middleware MUST run
+  window.location.replace("/login");
+};
+
   return (
     <header className="header-wrapper main-header">
       <div className="header-inner-wrapper">
@@ -108,7 +123,13 @@ export default function Header() {
                     </a>
                   </li>
                   <li>
-                    <a href="/login">
+                    <a 
+                     href="#"
+    onClick={(e) => {
+      e.preventDefault();
+      handleLogout();
+    }}
+                    >
                       <i className="fas fa-sign-out-alt"></i> Logout
                     </a>
                   </li>

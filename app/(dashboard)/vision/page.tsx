@@ -1,34 +1,50 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import {
+  collection,
+  getDocs,
+  updateDoc,
+  doc,
+} from "firebase/firestore";
+import { db } from "@/firebase/firebase.config";
+
+/* ================= TYPES ================= */
 
 type VisionForm = {
-  title: string;
-  visionStatement: string;
-  description: string;
-  focusAreas: string;
-  futureImpact: string;
+  PageTitle: string;
+  Visionstatement: string;
+  FocusAreas: string;
 };
 
 export default function VisionPageCard() {
   const [formData, setFormData] = useState<VisionForm>({
-    title: "Our Vision",
-    visionStatement:
-      "Our vision is to redefine the future of healthcare by building a trusted, digital-first healthcare ecosystem.",
-    description: `We envision a future where healthcare is seamless, inclusive, and technology-driven.
-Our platform aims to eliminate barriers between patients and providers.
-By leveraging innovation, we strive to deliver high-quality healthcare experiences worldwide.`,
-    focusAreas: `• Digital healthcare accessibility
-• Patient empowerment
-• Data-driven medical decisions
-• Scalable healthcare solutions`,
-    futureImpact: `• Improved patient outcomes
-• Enhanced provider collaboration
-• Global healthcare reach`,
+    PageTitle: "",
+    Visionstatement: "",
+    FocusAreas: "",
   });
 
+  const [docId, setDocId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  /* ================= FETCH ================= */
+
+  useEffect(() => {
+    const fetchVision = async () => {
+      const snap = await getDocs(collection(db, "ourvision"));
+
+      if (!snap.empty) {
+        const d = snap.docs[0];
+        setDocId(d.id);
+        setFormData(d.data() as VisionForm);
+      }
+    };
+
+    fetchVision();
+  }, []);
+
+  /* ================= CHANGE ================= */
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -37,20 +53,22 @@ By leveraging innovation, we strive to deliver high-quality healthcare experienc
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  /* ================= SAVE ================= */
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // 🔥 REQUIRED
+    e.preventDefault();
+    if (!docId) return;
 
     setIsSaving(true);
     setSuccess(false);
 
-    // 🔗 Replace with real API call
-    console.log("Vision Page Saved:", formData);
-
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await updateDoc(doc(db, "ourvision", docId), formData);
 
     setIsSaving(false);
     setSuccess(true);
   };
+
+  /* ================= UI (UNCHANGED) ================= */
 
   return (
     <div className="card table-card">
@@ -68,9 +86,9 @@ By leveraging innovation, we strive to deliver high-quality healthcare experienc
                 <label>Page Title</label>
                 <input
                   type="text"
-                  name="title"
+                  name="PageTitle"
                   className="form-control"
-                  value={formData.title}
+                  value={formData.PageTitle}
                   onChange={handleChange}
                 />
               </div>
@@ -81,52 +99,24 @@ By leveraging innovation, we strive to deliver high-quality healthcare experienc
               <div className="form-group">
                 <label>Vision Statement</label>
                 <textarea
-                  name="visionStatement"
+                  name="Visionstatement"
                   className="form-control"
-                  rows={4}
-                  value={formData.visionStatement}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            {/* Detailed Vision */}
-            <div className="col-md-12">
-              <div className="form-group">
-                <label>Detailed Vision Description</label>
-                <textarea
-                  name="description"
-                  className="form-control"
-                  rows={6}
-                  value={formData.description}
+                  rows={5}
+                  value={formData.Visionstatement}
                   onChange={handleChange}
                 />
               </div>
             </div>
 
             {/* Focus Areas */}
-            <div className="col-md-6">
+            <div className="col-md-12">
               <div className="form-group">
                 <label>Focus Areas</label>
                 <textarea
-                  name="focusAreas"
+                  name="FocusAreas"
                   className="form-control"
                   rows={5}
-                  value={formData.focusAreas}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            {/* Future Impact */}
-            <div className="col-md-6">
-              <div className="form-group">
-                <label>Future Impact</label>
-                <textarea
-                  name="futureImpact"
-                  className="form-control"
-                  rows={5}
-                  value={formData.futureImpact}
+                  value={formData.FocusAreas}
                   onChange={handleChange}
                 />
               </div>

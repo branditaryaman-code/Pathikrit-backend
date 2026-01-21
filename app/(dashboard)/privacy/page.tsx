@@ -1,41 +1,51 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import {
+  collection,
+  getDocs,
+  updateDoc,
+  doc,
+} from "firebase/firestore";
+import { db } from "@/firebase/firebase.config";
 
 type PrivacyForm = {
-  title: string;
-  introduction: string;
-  informationCollected: string;
-  usage: string;
-  sharing: string;
-  security: string;
-  userRights: string;
+  PageTitle: string;
+  InformationweCollect: string;
+  DataSharingandDisclosure: string;
+  DataProtectionandSecurity: string;
+  UserRights: string;
 };
 
 export default function PrivacyPolicyPageCard() {
   const [formData, setFormData] = useState<PrivacyForm>({
-    title: "Privacy Policy",
-    introduction:
-      "This Privacy Policy explains how we collect, use, and protect your personal information when you use our platform.",
-    informationCollected: `We may collect personal details such as name, email, phone number, and address.
-Usage data including device and browser information may also be collected.
-Payment information is processed securely through third-party gateways.`,
-    usage: `To provide and improve our services.
-To communicate important updates and notifications.
-To ensure platform security and compliance.`,
-    sharing: `We do not sell personal data to third parties.
-Information may be shared with trusted partners for service delivery.
-Disclosure may occur if required by law.`,
-    security: `We implement industry-standard security measures.
-Access to personal data is restricted to authorized personnel.
-Despite safeguards, no system is completely secure.`,
-    userRights: `Users have the right to access, update, or delete their personal information.
-Users may opt out of certain communications.
-Requests can be made via our contact channels.`,
+    PageTitle: "",
+    InformationweCollect: "",
+    DataSharingandDisclosure: "",
+    DataProtectionandSecurity: "",
+    UserRights: "",
   });
 
+  const [docId, setDocId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  /* ================= FETCH EXISTING DATA ================= */
+
+  useEffect(() => {
+    const fetchPrivacyPolicy = async () => {
+      const snap = await getDocs(collection(db, "PrivacyPolicy"));
+      if (!snap.empty) {
+        const d = snap.docs[0];
+        setDocId(d.id);
+        setFormData(d.data() as PrivacyForm);
+      }
+    };
+
+    fetchPrivacyPolicy();
+  }, []);
+
+  /* ================= HANDLE CHANGE ================= */
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -44,20 +54,22 @@ Requests can be made via our contact channels.`,
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  /* ================= UPDATE ================= */
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // 🔥 REQUIRED
+    e.preventDefault();
+    if (!docId) return;
 
     setIsSaving(true);
     setSuccess(false);
 
-    // 🔗 Replace with real API call later
-    console.log("Privacy Policy Saved:", formData);
-
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await updateDoc(doc(db, "PrivacyPolicy", docId), formData);
 
     setIsSaving(false);
     setSuccess(true);
   };
+
+  /* ================= UI (UNCHANGED) ================= */
 
   return (
     <div className="card table-card">
@@ -75,23 +87,9 @@ Requests can be made via our contact channels.`,
                 <label>Page Title</label>
                 <input
                   type="text"
-                  name="title"
+                  name="PageTitle"
                   className="form-control"
-                  value={formData.title}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            {/* Introduction */}
-            <div className="col-md-12">
-              <div className="form-group">
-                <label>Introduction</label>
-                <textarea
-                  name="introduction"
-                  className="form-control"
-                  rows={4}
-                  value={formData.introduction}
+                  value={formData.PageTitle}
                   onChange={handleChange}
                 />
               </div>
@@ -102,38 +100,24 @@ Requests can be made via our contact channels.`,
               <div className="form-group">
                 <label>Information We Collect</label>
                 <textarea
-                  name="informationCollected"
+                  name="InformationweCollect"
                   className="form-control"
                   rows={6}
-                  value={formData.informationCollected}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            {/* How We Use Information */}
-            <div className="col-md-6">
-              <div className="form-group">
-                <label>How We Use Information</label>
-                <textarea
-                  name="usage"
-                  className="form-control"
-                  rows={5}
-                  value={formData.usage}
+                  value={formData.InformationweCollect}
                   onChange={handleChange}
                 />
               </div>
             </div>
 
             {/* Data Sharing */}
-            <div className="col-md-6">
+            <div className="col-md-12">
               <div className="form-group">
                 <label>Data Sharing & Disclosure</label>
                 <textarea
-                  name="sharing"
+                  name="DataSharingandDisclosure"
                   className="form-control"
-                  rows={5}
-                  value={formData.sharing}
+                  rows={6}
+                  value={formData.DataSharingandDisclosure}
                   onChange={handleChange}
                 />
               </div>
@@ -144,10 +128,10 @@ Requests can be made via our contact channels.`,
               <div className="form-group">
                 <label>Data Protection & Security</label>
                 <textarea
-                  name="security"
+                  name="DataProtectionandSecurity"
                   className="form-control"
                   rows={6}
-                  value={formData.security}
+                  value={formData.DataProtectionandSecurity}
                   onChange={handleChange}
                 />
               </div>
@@ -158,10 +142,10 @@ Requests can be made via our contact channels.`,
               <div className="form-group">
                 <label>User Rights</label>
                 <textarea
-                  name="userRights"
+                  name="UserRights"
                   className="form-control"
                   rows={5}
-                  value={formData.userRights}
+                  value={formData.UserRights}
                   onChange={handleChange}
                 />
               </div>
@@ -169,14 +153,12 @@ Requests can be made via our contact channels.`,
 
           </div>
 
-          {/* SUCCESS MESSAGE */}
           {success && (
             <div className="alert alert-success mt-3">
               Privacy Policy updated successfully!
             </div>
           )}
 
-          {/* SUBMIT BUTTON */}
           <div className="text-right mt-3">
             <button
               type="submit"

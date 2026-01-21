@@ -1,6 +1,15 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const Login: React.FC = () => {
+  const router = useRouter();
+
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+
   return (
     <div className="ad-auth-wrapper">
       <div className="container">
@@ -19,7 +28,22 @@ const Login: React.FC = () => {
             {/* RIGHT FORM */}
             <div className="col-xl-6 col-lg-6 col-md-12 col-sm-12">
               <div className="ad-auth-content">
-                <form>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+
+                    if (!email || !phone || !password) {
+                      alert("Please fill all fields");
+                      return;
+                    }
+
+                    // ✅ Auth flag for middleware
+                    document.cookie = "auth=logged_in; path=/";
+                    
+
+                    router.push("/dashboard");
+                  }}
+                >
                   <a href="/" className="ad-auth-logo">
                     <img
                       src="/assets/images/logo2.png"
@@ -30,23 +54,37 @@ const Login: React.FC = () => {
                   <h2 style={{ paddingTop: "28px" }}>
                     <span className="primary">Hello,</span> Welcome!
                   </h2>
-                  <p style={{ paddingTop: "18px" }}>Please Enter Your Details Below to Continue</p>
+                  <p style={{ paddingTop: "18px" }}>
+                    Please Enter Your Details Below to Continue
+                  </p>
 
                   <div className="ad-auth-form">
-                    {/* Phone Number */}
-                   <div
-  className="ad-auth-feilds mb-30"
-  style={{ paddingTop: "8px" }}
->
-  <input
-    type="tel"
-    placeholder="Phone Number"
-    className="ad-input"
-    inputMode="tel"
-    pattern="[0-9]*"
-  />
-</div>
+                    {/* EMAIL */}
+                    <div className="ad-auth-feilds mb-30">
+                      <input
+                        type="email"
+                        placeholder="Email"
+                        className="ad-input"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
+                    </div>
 
+                    {/* PHONE NUMBER */}
+                    <div
+                      className="ad-auth-feilds mb-30"
+                      style={{ paddingTop: "8px" }}
+                    >
+                      <input
+                        type="tel"
+                        placeholder="Phone Number"
+                        className="ad-input"
+                        inputMode="tel"
+                        pattern="[0-9]*"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                      />
+                    </div>
 
                     {/* PASSWORD */}
                     <div className="ad-auth-feilds">
@@ -54,6 +92,8 @@ const Login: React.FC = () => {
                         type="password"
                         placeholder="Password"
                         className="ad-input"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                       />
                     </div>
                   </div>
@@ -75,7 +115,6 @@ const Login: React.FC = () => {
                     <button
                       type="submit"
                       className="ad-btn ad-login-member"
-                     
                     >
                       Login
                     </button>
@@ -90,7 +129,7 @@ const Login: React.FC = () => {
             </div>
           </div>
 
-          {/* ERROR MESSAGE */}
+          {/* ERROR MESSAGE (unchanged placeholder) */}
           <div className="ad-notifications ad-error">
             <p>
               <span>Duhh!</span> Something Went Wrong

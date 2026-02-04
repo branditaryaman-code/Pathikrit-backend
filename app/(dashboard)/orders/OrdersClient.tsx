@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { collection, getDocs, Timestamp } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  Timestamp,
+  doc,
+  updateDoc,
+  serverTimestamp,
+} from "firebase/firestore";
+
 import { db } from "@/firebase/firebase.config";
 import jsPDF from "jspdf";
 
@@ -25,7 +33,20 @@ type Order = {
   total: number;
   userId: string;
   createdAt: string;
+
+  prescription?: {
+    required: boolean;
+    url: string;
+    uploadedAt: any;
+  } | null;
 };
+
+type OrdersMode = "pending" | "completed" | "all";
+
+type OrdersClientProps = {
+  mode?: OrdersMode;
+};
+
 
 /* ================= HELPERS ================= */
 
@@ -36,10 +57,40 @@ const formatDate = (val: any) => {
   return "";
 };
 
-export default function OrdersPage() {
+export default function OrdersClient({
+  mode = "all",
+}: OrdersClientProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [search, setSearch] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [paymentFilter, setPaymentFilter] = useState<
+  "ALL" | "COD" | "RAZORPAY"
+>("ALL");
+
+
+const markOrderAsPaid = async (orderId: string) => {
+  try {
+    await updateDoc(doc(db, "orders", orderId), {
+      paymentStatus: "PAID",
+      paidAt: serverTimestamp(),
+    });
+
+    // Optimistic UI update
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.doc_id === orderId
+          ? { ...o, paymentStatus: "PAID" }
+          : o
+      )
+    );
+  } catch (err) {
+    console.error(err);
+    alert("Failed to mark order as paid");
+  }
+};
+
+
 
   /* ================= FETCH ORDERS ================= */
 
@@ -54,8 +105,8 @@ export default function OrdersPage() {
         billing: o.billing || {},
         items: o.items || [],
         coupon: o.coupon || null,
-        paymentMethod: o.paymentMethod || "",
-        paymentStatus: o.paymentStatus || "",
+       paymentMethod: String(o.paymentMethod || "").toUpperCase(),
+        paymentStatus: String(o.paymentStatus || "").toUpperCase(),
         subtotal: o.subtotal || 0,
         discount: o.discount || 0,
         discountedSubtotal: o.discountedSubtotal || 0,
@@ -65,6 +116,9 @@ export default function OrdersPage() {
         total: o.total || 0,
         userId: o.userId || "",
         createdAt: formatDate(o.createdAt),
+
+        prescription: o.prescription || null,
+
       };
     });
 
@@ -83,17 +137,52 @@ const userIdFromUrl = searchParams.get("userId");
   /* ================= SEARCH ================= */
 
  const filteredOrders = orders
+  // PAGE MODE FILTER
+  .filter((o) => {
+    if (mode === "pending") {
+      return o.paymentStatus === "PENDING";
+    }
+
+    if (mode === "completed") {
+      return o.paymentStatus === "PAID";
+    }
+
+    return true;
+  })
+
+  // PAYMENT METHOD FILTER (ONLY FOR COMPLETED)
+  .filter((o) => {
+    if (mode !== "completed") return true;
+
+    if (paymentFilter === "ALL") return true;
+    if (paymentFilter === "COD") return o.paymentMethod === "COD";
+    if (paymentFilter === "RAZORPAY")
+      return o.paymentMethod === "RAZORPAY";
+
+    return true;
+  })
+
+  // USER FILTER
   .filter((o) => {
     if (!userIdFromUrl) return true;
     return o.userId === userIdFromUrl;
   })
+
+  // SEARCH FILTER
   .filter((o) =>
-    `${o.doc_id} ${o.billing?.firstName || ""} ${o.billing?.lastName || ""} ${
-      o.paymentStatus
-    } ${o.paymentMethod}`
-      .toLowerCase()
-      .includes(search.toLowerCase())
-  );
+  `${o.doc_id}
+   ${o.billing?.firstName || ""}
+   ${o.billing?.lastName || ""}
+   ${o.paymentStatus}
+   ${o.paymentMethod}
+   ${o.createdAt}
+   ${o.total}`
+    .toLowerCase()
+    .includes(searchTerm.toLowerCase())
+);
+
+
+
 
 
   /* ================= DOWNLOAD INVOICE ================= */
@@ -179,28 +268,103 @@ const userIdFromUrl = searchParams.get("userId");
 
 
 
+const downloadCSV = () => {
+  if (filteredOrders.length === 0) {
+    alert("No orders to download");
+    return;
+  }
+
+  const headers = [
+    "Order ID",
+    "Customer Name",
+    "Email",
+    "Payment Status",
+    "Payment Method",
+    "Total Amount",
+    "Date",
+  ];
+
+  const rows = filteredOrders.map((o) => [
+    o.doc_id,
+    `${o.billing?.firstName || ""} ${o.billing?.lastName || ""}`,
+    o.billing?.email || "",
+    o.paymentStatus,
+    o.paymentMethod,
+    o.total,
+    o.createdAt,
+  ]);
+
+  const csvContent =
+    [headers, ...rows]
+      .map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+      )
+      .join("\n");
+
+  const blob = new Blob([csvContent], {
+    type: "text/csv;charset=utf-8;",
+  });
+
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download =
+    mode === "pending"
+      ? `pending_orders_${new Date().toISOString().slice(0, 10)}.csv`
+      : `completed_orders_${new Date().toISOString().slice(0, 10)}.csv`;
+
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
+
+
+
+
 
   return (
     <>
       {/* ===== TABLE ===== */}
       <div className="card table-card">
-        <div className="card-header pb-0 d-flex justify-content-between align-items-center">
-          <h4>Orders List</h4>
+       <div className="card-header pb-0 d-flex justify-content-between align-items-center">
+  <h4>
+    {mode === "pending" ? "Pending Orders" : "Completed Orders"}
+  </h4>
 
-          <input
-            type="text"
-            placeholder="Search Here..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              padding: "8px 12px",
-              borderRadius: "6px",
-              border: "1px solid #ddd",
-              width: "220px",
-              fontSize: "14px",
-            }}
-          />
-        </div>
+  <div style={{ display: "flex", gap: "10px" }}>
+    {mode === "completed" && (
+      <select
+        className="form-control"
+        value={paymentFilter}
+        onChange={(e) =>
+          setPaymentFilter(e.target.value as any)
+        }
+      >
+        <option value="ALL">All Payments</option>
+        <option value="COD">Cash (COD)</option>
+        <option value="RAZORPAY">Online</option>
+      </select>
+    )}
+
+     <div className="ad-user-btn">
+      <input
+        className="form-control"
+        type="text"
+        placeholder="Search Here..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+      </div>
+      <button
+      className="btn btn-outline-primary"
+      onClick={downloadCSV}
+    >
+      ⬇ Download CSV
+    </button>
+  </div>
+</div>
+
 
         <div className="card-body">
           <div className="table-responsive">
@@ -255,6 +419,35 @@ const userIdFromUrl = searchParams.get("userId");
                               View Details
                             </a>
                           </li>
+
+                          {o.prescription?.required && o.prescription?.url && (
+  <li>
+    <a
+      href={o.prescription.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{ color: "#e67e22" }}
+    >
+      View Prescription
+    </a>
+  </li>
+)}
+
+
+
+                          {mode === "pending" &&
+  o.paymentMethod === "COD" &&
+  o.paymentStatus === "PENDING" && (
+    <li>
+      <a
+        style={{ color: "green" }}
+        onClick={() => markOrderAsPaid(o.doc_id)}
+      >
+        Mark as Paid
+      </a>
+    </li>
+  )}
+
                         </ul>
                       </div>
                     </td>
@@ -316,6 +509,30 @@ const userIdFromUrl = searchParams.get("userId");
               {item.total_price}
             </p>
           ))}
+
+          {/* ✅ PRESCRIPTION SECTION — ADD THIS EXACTLY HERE */}
+{selectedOrder.prescription?.required && (
+  <>
+    <hr />
+    <strong>Prescription</strong>
+
+    <p>
+      <a
+        href={selectedOrder.prescription.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ color: "#e67e22", fontWeight: 600 }}
+      >
+        View Uploaded Prescription
+      </a>
+    </p>
+  </>
+)}
+
+
+
+
+
 
           <hr />
 

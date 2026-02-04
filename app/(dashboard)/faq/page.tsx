@@ -18,6 +18,7 @@ type FAQ = {
   doc_id: string;
   question: string;
   answer: string;
+  active?: boolean;
 };
 
 /* ================= PAGE ================= */
@@ -30,6 +31,7 @@ export default function FAQPage() {
   const [formData, setFormData] = useState({
     question: "",
     answer: "",
+    active: true,
   });
 
   /* ================= FETCH ================= */
@@ -59,11 +61,13 @@ export default function FAQPage() {
       await updateDoc(doc(db, "faq", editingFAQ.doc_id), {
         question: formData.question,
         answer: formData.answer,
+         active: formData.active,
       });
     } else {
       await addDoc(collection(db, "faq"), {
         question: formData.question,
         answer: formData.answer,
+         active: formData.active,
         created_at: serverTimestamp(),
       });
     }
@@ -84,7 +88,7 @@ export default function FAQPage() {
 
   const openAdd = () => {
     setEditingFAQ(null);
-    setFormData({ question: "", answer: "" });
+    setFormData({ question: "", answer: "", active: true,});
     setIsDrawerOpen(true);
   };
 
@@ -93,6 +97,7 @@ export default function FAQPage() {
     setFormData({
       question: faq.question,
       answer: faq.answer,
+      active: faq.active ?? true,
     });
     setIsDrawerOpen(true);
   };
@@ -100,7 +105,7 @@ export default function FAQPage() {
   const closeDrawer = () => {
     setIsDrawerOpen(false);
     setEditingFAQ(null);
-    setFormData({ question: "", answer: "" });
+    setFormData({ question: "", answer: "",  active: true,});
   };
 
   /* ================= UI ================= */
@@ -154,6 +159,7 @@ export default function FAQPage() {
                       <th>#</th>
                       <th>Question</th>
                       <th>Answer</th>
+                      <th>Status</th>
                       <th>Action</th>
                     </tr>
                   </thead>
@@ -164,6 +170,15 @@ export default function FAQPage() {
                         <td>{i + 1}</td>
                         <td>{f.question}</td>
                         <td>{f.answer}</td>
+
+                        <td>
+  {f.active ? (
+    <span className="badge badge-success">Active</span>
+  ) : (
+    <span className="badge badge-secondary">Inactive</span>
+  )}
+</td>
+
 
                         <td className="relative">
                           <a className="action-btn">
@@ -253,6 +268,19 @@ export default function FAQPage() {
               }
             />
           </div>
+
+          <div className="form-group">
+  <label>
+    <input
+      type="checkbox"
+      checked={formData.active}
+      onChange={(e) =>
+        setFormData({ ...formData, active: e.target.checked })
+      }
+    />{" "}
+    Active
+  </label>
+</div>
 
           <button className="btn btn-primary mt-3" onClick={handleSave}>
             Save

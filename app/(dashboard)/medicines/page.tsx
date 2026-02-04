@@ -41,6 +41,8 @@ type Medicine = {
   stock_quantity: string;
   image_url?: string ;
   status: boolean;
+  requires_prescription: boolean;
+
 };
 
 /* ================= HELPERS ================= */
@@ -79,11 +81,13 @@ export default function MedicinesPage() {
     description: "",
     expiry_date: "",
     mrp: "",
-    selling_price: "",
-    tax: "",
-    stock_quantity: "",
+    selling_price: "0",
+    tax: "0",
+    stock_quantity: "0",
     image_url: "",
     status: true,
+    requires_prescription: false,
+
   });
 
   /* ================= FIREBASE ================= */
@@ -197,6 +201,8 @@ if (imageFile) {
     stock_quantity: "",
     image_url: "",
     status: true,
+   requires_prescription: false,
+
   });
    setImageFile(null);
   setImagePreview(null);
@@ -249,52 +255,58 @@ const uploadImage = async (): Promise<string | null> => {
         <h4 className="page-title">Medicines</h4>
 
 
-        <div className="ad-breadcrumb">
-           <ul>
-            <li>
-               <input
+       <div
+  style={{
+    display: "flex",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: "12px", // 👈 THIS creates space between search & button
+    width: "100%",
+  }}
+>
+  {/* SEARCH */}
+  <input
     className="form-control"
     type="text"
     placeholder="Search medicines..."
-    
-    
     style={{ width: "220px" }}
     value={searchTerm}
     onChange={(e) => setSearchTerm(e.target.value)}
   />
-  </li>
-        <li>        
-        <button
-          className="btn btn-primary"
-          onClick={() => {
-            setEditingId(null);
-            setFormData({
-              medicine_id: "",
-              medicine_name: "",
-              brand_name: "",
-              batch_number: "",
-              category_id: "",
-              manufacturer_id: "",
-              composition: "",
-              form: "",
-              dosage: "",
-              description: "",
-              expiry_date: "",
-              mrp: "",
-              selling_price: "",
-              tax: "",
-              stock_quantity: "",
-              image_url: "",
-              status: true,
-            });
-            setIsDrawerOpen(true);
-          }}
-        >
-          + Add Medicine
-        </button>
-        </li>
-        </ul>
-        </div>
+
+  {/* ADD BUTTON */}
+  <button
+    className="btn btn-primary"
+    onClick={() => {
+      setEditingId(null);
+      setFormData({
+        medicine_id: "",
+        medicine_name: "",
+        brand_name: "",
+        batch_number: "",
+        category_id: "",
+        manufacturer_id: "",
+        composition: "",
+        form: "",
+        dosage: "",
+        description: "",
+        expiry_date: "",
+        mrp: "",
+        selling_price: "0",
+        tax: "0",
+        stock_quantity: "0",
+        image_url: "",
+        status: true,
+        requires_prescription: false,
+
+      });
+      setIsDrawerOpen(true);
+    }}
+  >
+    + Add Medicine
+  </button>
+</div>
+
       </div>
 
       {/* TABLE */}
@@ -309,6 +321,7 @@ const uploadImage = async (): Promise<string | null> => {
                 <th>Stock</th>
                 <th>Price</th>
                 <th>Expiry</th>
+                <th>Status</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -322,7 +335,13 @@ const uploadImage = async (): Promise<string | null> => {
                   <td>{m.stock_quantity}</td>
                   <td>₹{m.selling_price}</td>
                   <td>{formatDate(m.expiry_date)}</td>
-
+                  <td>
+  {m.status ? (
+    <span className="badge badge-success">Active</span>
+  ) : (
+    <span className="badge badge-secondary">Inactive</span>
+  )}
+                </td>
                   
                   
                   <td className="relative">
@@ -342,10 +361,12 @@ const uploadImage = async (): Promise<string | null> => {
                     <a href="#"
                       onClick={() => {
                         setEditingId(m.medicine_id);
-                        setFormData({
-                          ...m,
-                          expiry_date: formatDate(m.expiry_date),
-                        });
+                       setFormData({
+  ...m,
+  requires_prescription: Boolean(m.requires_prescription), // ✅ ADD
+  expiry_date: formatDate(m.expiry_date),
+});
+
                         setIsDrawerOpen(true);
                       }}
                       >
@@ -423,73 +444,94 @@ const uploadImage = async (): Promise<string | null> => {
 </div>
 
 
-    <input
-      className="form-control mb-2"
-      placeholder="Medicine Name"
-      value={formData.medicine_name}
-      onChange={(e) =>
-        setFormData({ ...formData, medicine_name: e.target.value })
-      }
-    />
+    <div className="form-group mb-2">
+  <label>Medicine Name</label>
+  <input
+    className="form-control"
+    value={formData.medicine_name}
+    onChange={(e) =>
+      setFormData({ ...formData, medicine_name: e.target.value })
+    }
+  />
+</div>
 
+<div  className="form-group mb-2">
+  <label>Brand Name</label>
     <input
-      className="form-control mb-2"
-      placeholder="Brand Name"
+      className="form-control"
       value={formData.brand_name}
       onChange={(e) =>
         setFormData({ ...formData, brand_name: e.target.value })
       }
     />
+</div>
 
-    <input
-      className="form-control mb-2"
-      placeholder="Batch Number"
-      value={formData.batch_number}
-      onChange={(e) =>
-        setFormData({ ...formData, batch_number: e.target.value })
-      }
-    />
+   <div className="form-group mb-2">
+  <label>Batch Number</label>
+  <input
+    className="form-control"
+    value={formData.batch_number}
+    onChange={(e) =>
+      setFormData({ ...formData, batch_number: e.target.value })
+    }
+  />
+</div>
 
+<div className="form-group mb-2">
+  <label>Category ID</label>
      <input
-      className="form-control mb-2"
-      placeholder="Category ID"
+      className="form-control"
       value={formData.category_id}
       onChange={(e) =>
         setFormData({ ...formData, category_id: String(e.target.value) })
       }
     />
+</div>
 
 
+<div className="form-group mb-2">
+  <label>Manufacturer ID</label>
     <input
       className="form-control mb-2"
-      placeholder="Manufacturer ID"
       value={formData. manufacturer_id}
       onChange={(e) =>
         setFormData({ ...formData,  manufacturer_id: String(e.target.value) })
       }
     />
+</div>
 
+<div className="form-group mb-2">
+   <label>Composition</label>
     <input
       className="form-control mb-2"
-      placeholder="Composition"
       value={formData. composition}
       onChange={(e) =>
         setFormData({ ...formData, composition: String(e.target.value) })
       }
     />
+  </div>
 
-    <input
-      className="form-control mb-2"
-      placeholder="Form"
-      value={formData. form}
-      onChange={(e) =>
-        setFormData({ ...formData, form: String(e.target.value) })
-      }
-    />
+    <div className="form-group mb-2">
+    <label>Form</label>
+    <select
+  className="form-control"
+  value={formData.form}
+  onChange={(e) =>
+    setFormData({ ...formData, form: e.target.value })
+  }
+>
+  <option value="">Select Form</option>
+  <option value="Tablet">Tablet</option>
+  <option value="Syrup">Syrup</option>
+</select>
+</div>
 
+
+<div className="form-group mb-2">
+  <label>Expiry Date</label>
    <input
   type="date"
-  className="form-control mb-2"
+  className="form-control"
   value={
     typeof formData.expiry_date === "string"
       ? formData.expiry_date
@@ -501,66 +543,122 @@ const uploadImage = async (): Promise<string | null> => {
     setFormData({ ...formData, expiry_date: e.target.value })
   }
 />
+</div>
 
-
+<div className="form-group mb-2">
+   <label>Dosage</label>
 <input
-      className="form-control mb-2"
-      placeholder="Dosage"
+      className="form-control"
       value={formData. dosage}
       onChange={(e) =>
         setFormData({ ...formData, dosage: String(e.target.value) })
       }
     />
+</div>
 
+<div className="form-group mb-2">
+  <label>Description</label>
     <input
-      className="form-control mb-2"
-      placeholder="Description"
+      className="form-control"
       value={formData. description}
       onChange={(e) =>
         setFormData({ ...formData, description: String(e.target.value) })
       }
     />
+</div>
 
-
+<div className="form-group mb-2">
+  <label>MRP</label>
     <input
-      className="form-control mb-2"
-    
-      placeholder="MRP"
+      className="form-control"
       value={formData.mrp}
       onChange={(e) =>
         setFormData({ ...formData, mrp: String(e.target.value) })
       }
     />
+</div>
 
+<div className="form-group mb-2">
+  <label>Selling Price</label>
     <input
-      className="form-control mb-2"
+      className="form-control"
+      min={0}
       type="number"
-      placeholder="Selling Price"
-      value={formData.selling_price}
-      onChange={(e) =>
-        setFormData({ ...formData, selling_price: String(e.target.value) })
-      }
+      value={formData.selling_price ?? "0"}
+       onChange={(e) => {
+      const value = Math.max(0, Number(e.target.value));
+      setFormData({
+        ...formData,
+        selling_price: String(value),
+      });
+    }}
     />
+</div>
 
+<div className="form-group mb-2">
+  <label>Stock Quantity</label>
     <input
-      className="form-control mb-2"
+      className="form-control"
+       min={0}
       type="number"
-      placeholder="Stock Quantity"
-      value={formData.stock_quantity}
-      onChange={(e) =>
-        setFormData({ ...formData, stock_quantity: String(e.target.value) })
-      }
+      value={formData.stock_quantity ?? "0"}
+     onChange={(e) => {
+      const value = Math.max(0, Number(e.target.value));
+      setFormData({
+        ...formData,
+        stock_quantity: String(value),
+      });
+    }}
     />
+</div>
 
+<div className="form-group mb-2">
+  <label>Tax</label>
      <input
-      className="form-control mb-2"
+      className="form-control"
+       min={0}
       type="number"
-      placeholder="Tax"
-      value={formData.tax}
-      onChange={(e) =>
-        setFormData({ ...formData, tax: String(e.target.value) })
-      }
+      value={formData.tax ?? "0"}
+      onChange={(e) => {
+      const value = Math.max(0, Number(e.target.value));
+      setFormData({
+        ...formData,
+        tax: String(value),
+      });
+    }}
     />
+</div>
+
+<div className="form-group mb-2">
+  <label>
+    <input
+      type="checkbox"
+      checked={formData.status}
+      onChange={(e) =>
+        setFormData({ ...formData, status: e.target.checked })
+      }
+    />{" "}
+    Active
+  </label>
+</div>
+
+<div className="form-group mb-2">
+  <label>
+   <input
+  type="checkbox"
+  checked={formData.requires_prescription}
+  onChange={(e) =>
+    setFormData({
+      ...formData,
+      requires_prescription: e.target.checked,
+    })
+  }
+/>
+
+    Prescription Required
+  </label>
+</div>
+
 
    {/* IMAGE UPLOAD */}
 <input
@@ -592,14 +690,10 @@ const uploadImage = async (): Promise<string | null> => {
 )}
 
 
- <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
-  <button className="btn btn-secondary" onClick={closeDrawer}>
-    Cancel
-  </button>
-
-  <button className="btn btn-primary" onClick={handleSave}>
+<div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
+ <button className="btn btn-primary" onClick={handleSave}>
     {editingId ? "Update" : "Save"}
-  </button>
+</button>
 </div>
 
   </div>

@@ -54,6 +54,7 @@ export default function SymptomsPage() {
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   /* ================= FETCH ================= */
 
@@ -144,6 +145,7 @@ export default function SymptomsPage() {
     setIsDrawerOpen(false);
     setEditingId(null);
     setImageFile(null);
+     setImagePreview(null);
     setAliasesInput("");
     setFormData({
       name: "",
@@ -233,7 +235,7 @@ export default function SymptomsPage() {
                       <th>Title</th>
                       <th>Aliases</th>
                       <th>Featured</th>
-                      <th>Active</th>
+                      <th>Status</th>
                       <th>Action</th>
                     </tr>
                   </thead>
@@ -264,13 +266,19 @@ export default function SymptomsPage() {
                             <ul>
                               <li>
                                 <a
-                                 onClick={() => {
+                                onClick={() => {
   setEditingId(s.doc_id);
+
   const { doc_id, ...rest } = s;
   setFormData(rest);
+
   setAliasesInput((s.aliases || []).join(", "));
+  setImagePreview(s.image || null); // ✅ PRELOAD IMAGE
+  setImageFile(null);
+
   setIsDrawerOpen(true);
 }}
+
 
                                 >
                                   <i className="far fa-edit mr-2"></i>Edit
@@ -349,13 +357,34 @@ export default function SymptomsPage() {
 />
 
 
-          <input
-            type="file"
-            className="form-control mb-2"
-            onChange={(e) =>
-              setImageFile(e.target.files?.[0] || null)
-            }
-          />
+         <input
+  type="file"
+  accept="image/*"
+  className="form-control mb-2"
+  onChange={(e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  }}
+/>
+
+
+{/* IMAGE PREVIEW */}
+  {imagePreview && (
+    <img
+      src={imagePreview}
+      alt="Preview"
+      style={{
+        width: "100%",
+        height: 150,
+        objectFit: "cover",
+        borderRadius: 6,
+      }}
+    />
+  )}
+
 
           <label>
             <input

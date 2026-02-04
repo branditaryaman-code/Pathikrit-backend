@@ -1,66 +1,97 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  serverTimestamp,
+} from "firebase/firestore";
+import { db } from "@/firebase/firebase.config";
+
+/* ================= TYPES ================= */
 
 type Testimonial = {
-  id: number;
+  id: string;
   name: string;
-  phone: string;
-  email: string;
-  address: string;
-  wallet: string;
-  date: string;
+  testimonial: string;
+  designation: string;
+  rating: number;
+  active: boolean;
 };
 
 export default function TestimonialsPage() {
-    
-    
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([
-    {
-      id: 1,
-      name: "Scott Henry",
-      phone: "+(00) 4512 451",
-      email: "[email protected]",
-      address: "2210 Grove Street Bethpage, NI 440014",
-      wallet: "$6,415",
-      date: "22/06/2022",
-    },
-    {
-      id: 2,
-      name: "Mark Wood",
-      phone: "+(00) 4512 451",
-      email: "[email protected]",
-      address: "2210 sed do eiusmod tempor ut, NI 440022",
-      wallet: "$2,415",
-      date: "22/07/2022",
-    },
-  ]);
-
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [formData, setFormData] = useState<Testimonial>({
-    id: 0,
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [formData, setFormData] = useState<Omit<Testimonial, "id">>({
     name: "",
-    phone: "",
-    email: "",
-    address: "",
-    wallet: "",
-    date: "",
+    testimonial: "",
+    designation: "",
+    rating: 5,
+    active: true,
   });
 
-  const handleAdd = () => {
-    setTestimonials((prev) => [
-      ...prev,
-      { ...formData, id: Date.now() },
-    ]);
+  /* ================= FETCH ================= */
+
+  const fetchTestimonials = async () => {
+    const snap = await getDocs(collection(db, "testimonials"));
+    const data = snap.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<Testimonial, "id">),
+    }));
+    setTestimonials(data);
+  };
+
+  useEffect(() => {
+    fetchTestimonials();
+  }, []);
+
+  /* ================= SAVE ================= */
+
+  const handleSave = async () => {
+    const payload = {
+      ...formData,
+      rating: Number(formData.rating),
+      updated_at: serverTimestamp(),
+    };
+
+    if (editingId) {
+      await updateDoc(doc(db, "testimonials", editingId), payload);
+    } else {
+      await addDoc(collection(db, "testimonials"), {
+        ...payload,
+        created_at: serverTimestamp(),
+      });
+    }
+
+    closeDrawer();
+    fetchTestimonials();
+  };
+
+  /* ================= DELETE ================= */
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this testimonial?")) return;
+    await deleteDoc(doc(db, "testimonials", id));
+    fetchTestimonials();
+  };
+
+  /* ================= CLOSE DRAWER ================= */
+
+  const closeDrawer = () => {
     setIsDrawerOpen(false);
+    setEditingId(null);
     setFormData({
-      id: 0,
       name: "",
-      phone: "",
-      email: "",
-      address: "",
-      wallet: "",
-      date: "",
+      testimonial: "",
+      designation: "",
+      rating: 5,
+      active: true,
     });
   };
 
@@ -74,28 +105,21 @@ export default function TestimonialsPage() {
               <h4 className="page-title">Testimonials</h4>
             </div>
 
-            <div className="ad-breadcrumb">
-              <ul>
-                <li>
-                  <div className="ad-user-btn">
-                    <input
-                      className="form-control"
-                      type="text"
-                      placeholder="Search Here..."
-                    />
-                    <svg viewBox="0 0 56.966 56.966">
-                      <path d="M55.146,51.887L41.588,37.786c3.486-4.144,5.396-9.358,5.396-14.786c0-12.682-10.318-23-23-23s-23,10.318-23,23s10.318,23,23,23c4.761,0,9.298-1.436,13.177-4.162l13.661,14.208c0.571,0.593,1.339,0.92,2.162,0.92c0.779,0,1.518-0.297,2.079-0.837C56.255,54.982,56.293,53.08,55.146,51.887z" />
-                    </svg>
-                  </div>
-                </li>
-              </ul>
-            </div>
-
             {/* ADD BUTTON */}
             <div style={{ marginTop: "10px" }}>
               <button
                 className="btn btn-primary"
-                onClick={() => setIsDrawerOpen(true)}
+                onClick={() => {
+                  setEditingId(null);
+                  setFormData({
+                    name: "",
+                    testimonial: "",
+                    designation: "",
+                    rating: 5,
+                    active: true,
+                  });
+                  setIsDrawerOpen(true);
+                }}
               >
                 + Add Testimonial
               </button>
@@ -118,11 +142,9 @@ export default function TestimonialsPage() {
                   <thead>
                     <tr>
                       <th>#</th>
-                      <th>Username</th>
-                      <th>Phone / Email</th>
-                      <th>Address</th>
-                      <th>Wallet Balance</th>
-                      <th>Joining Date</th>
+                      <th>Name</th>
+                      <th>Testimonial</th>
+                      <th>Status</th>
                       <th>Action</th>
                     </tr>
                   </thead>
@@ -132,14 +154,17 @@ export default function TestimonialsPage() {
                       <tr key={t.id}>
                         <td>{i + 1}</td>
                         <td>{t.name}</td>
+                        <td>{t.testimonial}</td>
                         <td>
-                          {t.phone}
-                          <br />
-                          <a href="#">{t.email}</a>
+                          {t.active ? (
+                            <span className="badge badge-success">Active</span>
+                          ) : (
+                            <span className="badge badge-secondary">
+                              Inactive
+                            </span>
+                          )}
                         </td>
-                        <td>{t.address}</td>
-                        <td>{t.wallet}</td>
-                        <td>{t.date}</td>
+
                         <td className="relative">
                           <a className="action-btn" href="#">
                             <svg
@@ -152,23 +177,41 @@ export default function TestimonialsPage() {
                             </svg>
                           </a>
 
-                            <div className="action-option">
-                        <ul>
-                          <li>
-                            <a href="#">
-                              <i className="far fa-edit mr-2"></i>
-                             Edit
-                            </a>
-                          </li>
-                         
-                          <li>
-                            <a href="#">
-                              <i className="far fa-trash-alt mr-2"></i>
-                              Delete
-                            </a>
-                          </li>
-                        </ul>
-                      </div>
+                          <div className="action-option">
+                            <ul>
+                              <li>
+                                <a
+                                  href="#"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setEditingId(t.id);
+                                    setFormData({
+                                      name: t.name,
+                                      testimonial: t.testimonial,
+                                      designation: t.designation,
+                                      rating: t.rating,
+                                      active: t.active,
+                                    });
+                                    setIsDrawerOpen(true);
+                                  }}
+                                >
+                                  Edit
+                                </a>
+                              </li>
+
+                              <li>
+                                <a
+                                  href="#"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    handleDelete(t.id);
+                                  }}
+                                >
+                                  Delete
+                                </a>
+                              </li>
+                            </ul>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -196,9 +239,9 @@ export default function TestimonialsPage() {
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <h4>Add Testimonial</h4>
+            <h4>{editingId ? "Edit Testimonial" : "Add Testimonial"}</h4>
             <button
-              onClick={() => setIsDrawerOpen(false)}
+              onClick={closeDrawer}
               style={{ border: "none", background: "transparent" }}
             >
               ✕
@@ -207,26 +250,69 @@ export default function TestimonialsPage() {
 
           <hr />
 
-          {["name", "phone", "email", "address", "wallet", "date"].map(
-            (field) => (
-              <div key={field} className="form-group">
-                <label>{field}</label>
-                <input
-                  className="form-control"
-                  value={(formData as any)[field]}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      [field]: e.target.value,
-                    })
-                  }
-                />
-              </div>
-            )
-          )}
+          <div className="form-group">
+            <label>Name</label>
+            <input
+              className="form-control"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+            />
+          </div>
 
-          <button className="btn btn-primary mt-3" onClick={handleAdd}>
-            Save
+          <div className="form-group">
+            <label>Designation</label>
+            <input
+              className="form-control"
+              value={formData.designation}
+              onChange={(e) =>
+                setFormData({ ...formData, designation: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Testimonial</label>
+            <textarea
+              className="form-control"
+              value={formData.testimonial}
+              onChange={(e) =>
+                setFormData({ ...formData, testimonial: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Rating (1–5)</label>
+            <input
+              type="number"
+              min={1}
+              max={5}
+              className="form-control"
+              value={formData.rating}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  rating: Math.max(1, Math.min(5, Number(e.target.value))),
+                })
+              }
+            />
+          </div>
+
+          <label className="d-block">
+            <input
+              type="checkbox"
+              checked={formData.active}
+              onChange={(e) =>
+                setFormData({ ...formData, active: e.target.checked })
+              }
+            />{" "}
+            Active
+          </label>
+
+          <button className="btn btn-primary mt-3" onClick={handleSave}>
+            {editingId ? "Update" : "Save"}
           </button>
         </div>
       )}

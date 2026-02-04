@@ -3,7 +3,7 @@ import React from "react";
 const FooterBottom: React.FC = () => {
   return (
     <div className="ad-footer-btm">
-      <p>Copyright 2022 © SplashDash All Rights Reserved.</p>
+      <p>Copyright 2025 © Pathikrit Doctor's Point All Rights Reserved.</p>
     </div>
   );
 };

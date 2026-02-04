@@ -1,15 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
+{/*The primary purpose of useEffect is to synchronize your component with an external system after the rendering is complete and the DOM is updated. 
+  The import { useEffect } from "react"; statement is used to import the useEffect Hook, which allows functional components to manage side effects 
+  (operations outside the normal React rendering process, such as data fetching, subscriptions, and manual DOM manipulations).  
+  */}
+
+//firestore sdk functions
 import {
-  collection,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  serverTimestamp,
-  Timestamp,
+  collection, //reference a collection
+  getDocs, //read documents
+  addDoc, //create a document
+  updateDoc, //update an existing document
+  deleteDoc, //delete a document
+  doc, //reference a specific document
+  serverTimestamp, //firestore server time
+  Timestamp, //firestore timestamp time
 } from "firebase/firestore";
 import { db } from "@/firebase/firebase.config";
 
@@ -20,7 +27,7 @@ type Coupon = {
   coupon_code: string;
   type: "fixed" | "percentage";
   value: number;
-  expiry: Timestamp | string;
+  expiry: Timestamp | string; //expiry is union type because firestore gives timestamp, and HTML data input gives string
   valid: boolean;
 };
 
@@ -34,13 +41,14 @@ const formatDate = (date: any) => {
   }
   return "";
 };
+{/*this helper converts timestamp to string, leaves string as is, prevents crashes*/}
 
 /* ================= PAGE ================= */
 
 export default function CouponsPage() {
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [coupons, setCoupons] = useState<Coupon[]>([]); //Stores all coupons from Firestore
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false); //Controls side drawer visibility
+  const [editingId, setEditingId] = useState<string | null>(null); //null for add mode, string for edit mode
 
   const [formData, setFormData] = useState<Coupon>({
     doc_id: "",
@@ -49,7 +57,7 @@ export default function CouponsPage() {
     value: 0,
     expiry: "",
     valid: true,
-  });
+  }); //this represents what user is editing, what will be saved to firestore
 
   /* ================= FETCH ================= */
 
@@ -60,11 +68,11 @@ export default function CouponsPage() {
       ...(d.data() as Omit<Coupon, "doc_id">),
     }));
     setCoupons(data);
-  };
+  };  {/*connects to firestore, fetch all documents in coupon collection, convert them into js objects, store them in state*/}
 
   useEffect(() => {
     fetchCoupons();
-  }, []);
+  }, []); //Load coupons when page opens
 
   /* ================= SAVE ================= */
 
@@ -92,7 +100,7 @@ export default function CouponsPage() {
         value: Number(formData.value),
         expiry: expiryDate,
         valid: formData.valid,
-        updated_at: serverTimestamp(),
+        updated_at: serverTimestamp(), //uses firestore server time, avoids client clock issues
       };
 
       if (editingId && editingId.trim() !== "") {
@@ -102,15 +110,15 @@ export default function CouponsPage() {
           ...payload,
           created_at: serverTimestamp(),
         });
-      }
+      } //for adding and editing coupon
 
-      closeDrawer();
-      fetchCoupons();
+      closeDrawer(); // ensures drawer closes
+      fetchCoupons(); //ensures table updates
     } catch (err) {
       console.error(err);
       alert("Failed to save coupon");
     }
-  };
+  }; //this function handles both create and update 
 
   /* ================= DELETE ================= */
 
@@ -155,6 +163,7 @@ export default function CouponsPage() {
               <h4 className="page-title">Coupon</h4>
             </div>
 
+          {/*For Search*/}
             <div className="ad-breadcrumb">
               <ul>
                 <li>
@@ -171,7 +180,8 @@ export default function CouponsPage() {
                 </li>
               </ul>
             </div>
-
+          {/*Add Mode*/}
+            {/*clears form, opens drawer in add mode*/}
             <div style={{ marginTop: "10px" }}>
               <button
                 className="btn btn-primary"
@@ -219,7 +229,8 @@ export default function CouponsPage() {
                   </thead>
 
                   <tbody>
-                    {filteredCoupons.map((c, i) => (
+                    {/*renders row per coupon, uses doc_id as key, shows formatted expiry*/}
+                    {filteredCoupons.map((c, i) => (   
                       <tr key={c.doc_id}>
                         <td>{i + 1}</td>
                         <td>{c.coupon_code}</td>
@@ -245,6 +256,8 @@ export default function CouponsPage() {
                                   href="#"
                                   onClick={(e) => {
                                     e.preventDefault();
+
+                                    {/*switches to edit mode, pre-fills form, converts timestamp into string */}
                                     setEditingId(c.doc_id);
                                     setFormData({
                                       ...c,

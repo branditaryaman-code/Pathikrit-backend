@@ -108,20 +108,7 @@ export default function VisionPageCard() {
               </div>
             </div>
 
-            {/* Focus Areas */}
-            <div className="col-md-12">
-              <div className="form-group">
-                <label>Focus Areas</label>
-                <textarea
-                  name="FocusAreas"
-                  className="form-control"
-                  rows={5}
-                  value={formData.FocusAreas}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
+           
           </div>
 
           {/* SUCCESS MESSAGE */}

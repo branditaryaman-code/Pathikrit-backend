@@ -39,6 +39,8 @@ type User = {
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState("");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
   /* ================= FETCH USERS ================= */
 
@@ -78,6 +80,55 @@ export default function UsersPage() {
     fetchUsers();
   };
 
+
+
+  const downloadCSV = () => {
+  if (filteredUsers.length === 0) {
+    alert("No users to download");
+    return;
+  }
+
+  const headers = [
+    "Name",
+    "Email",
+    "Phone",
+    "City",
+    "State",
+    "Zip",
+    "Provider",
+    "Profile Status",
+  ];
+
+  const rows = filteredUsers.map((u) => [
+    u.fullName || u.name || "",
+    u.email || "",
+    u.phone || "",
+    u.city || "",
+    u.state || "",
+    u.zip || "",
+    u.provider || "",
+    u.profileCompleted ? "Completed" : "Pending",
+  ]);
+
+  const csvContent =
+    [headers, ...rows]
+      .map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+      )
+      .join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `users_${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+
+  URL.revokeObjectURL(url);
+};
+
+
   /* ================= UI ================= */
 
   return (
@@ -90,24 +141,34 @@ export default function UsersPage() {
               <h4 className="page-title">Users</h4>
             </div>
 
-            <div className="ad-breadcrumb">
-              <ul>
-                <li>
-                  <div className="ad-user-btn">
-                    <input
-                      className="form-control"
-                      type="text"
-                      placeholder="Search Here..."
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                    />
-                    <svg viewBox="0 0 56.966 56.966">
-                      <path d="M55.146,51.887L41.588,37.786c3.486-4.144,5.396-9.358,5.396-14.786c0-12.682-10.318-23-23-23s-23,10.318-23,23s10.318,23,23,23c4.761,0,9.298-1.436,13.177-4.162l13.661,14.208c0.571,0.593,1.339,0.92,2.162,0.92c0.779,0,1.518-0.297,2.079-0.837C56.255,54.982,56.293,53.08,55.146,51.887z" />
-                    </svg>
-                  </div>
-                </li>
-              </ul>
-            </div>
+           <div className="ad-breadcrumb">
+  <ul style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "flex-end" }}>
+    <li>
+      <div className="ad-user-btn">
+        <input
+          className="form-control"
+          type="text"
+          placeholder="Search Here..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <svg viewBox="0 0 56.966 56.966">
+          <path d="M55.146,51.887L41.588,37.786..." />
+        </svg>
+      </div>
+    </li>
+
+    <li>
+      <button
+        className="btn btn-outline-primary"
+        onClick={downloadCSV}
+      >
+        ⬇ Download CSV
+      </button>
+    </li>
+  </ul>
+</div>
+
           </div>
         </div>
       </div>
@@ -188,6 +249,18 @@ export default function UsersPage() {
                                   Delete
                                 </a>
                               </li>
+
+                              <li>
+                                <a
+                                  onClick={() => {
+                                  setSelectedUser(u);
+                                  setIsDrawerOpen(true);
+                                   }}
+                                  >
+        <i className="far fa-eye mr-2"></i>
+        View Details
+      </a>
+    </li>
                             </ul>
                           </div>
                         </td>
@@ -208,6 +281,93 @@ export default function UsersPage() {
           </div>
         </div>
       </div>
+
+
+      {/* ===== USER DETAILS DRAWER ===== */}
+{isDrawerOpen && selectedUser && (
+  <div
+    style={{
+      position: "fixed",
+      top: 0,
+      right: 0,
+      width: "420px",
+      height: "100vh",
+      background: "#fff",
+      boxShadow: "-4px 0 12px rgba(0,0,0,0.2)",
+      padding: "20px",
+      zIndex: 9999,
+      overflowY: "auto",
+    }}
+  >
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+      }}
+    >
+      <h4>User Details</h4>
+      <button
+        onClick={() => {
+          setIsDrawerOpen(false);
+          setSelectedUser(null);
+        }}
+        style={{ border: "none", background: "transparent" }}
+      >
+        ✕
+      </button>
+    </div>
+
+    <hr />
+
+    <p><strong>Name:</strong> {selectedUser.fullName || selectedUser.name || "-"}</p>
+    <p><strong>Email:</strong> {selectedUser.email || "-"}</p>
+    <p><strong>Phone:</strong> {selectedUser.phone || "-"}</p>
+    <p><strong>Alternate Phone:</strong> {selectedUser.alternatePhone || "-"}</p>
+    <p><strong>Gender:</strong> {selectedUser.gender || "-"}</p>
+
+    <hr />
+
+    <p><strong>Address:</strong> {selectedUser.address || "-"}</p>
+    <p><strong>City:</strong> {selectedUser.city || "-"}</p>
+    <p><strong>State:</strong> {selectedUser.state || "-"}</p>
+    <p><strong>Zip:</strong> {selectedUser.zip || "-"}</p>
+
+    <hr />
+
+    <p><strong>Provider:</strong> {selectedUser.provider || "-"}</p>
+    <p>
+      <strong>Profile Status:</strong>{" "}
+      {selectedUser.profileCompleted ? "Completed" : "Pending"}
+    </p>
+
+    <hr />
+
+    <p>
+      <strong>Created At:</strong>{" "}
+      {selectedUser.createdAt
+        ? selectedUser.createdAt.toDate().toLocaleString()
+        : "-"}
+    </p>
+
+    <p>
+      <strong>Updated At:</strong>{" "}
+      {selectedUser.updatedAt
+        ? selectedUser.updatedAt.toDate().toLocaleString()
+        : "-"}
+    </p>
+  </div>
+)}
+
+
+
+
+
+
+
+
+
+
     </>
   );
 }

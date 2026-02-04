@@ -21,6 +21,12 @@ import { db, app } from "@/firebase/firebase.config";
 
 const storage = getStorage(app);
 
+const SAMPLE_TYPE_OPTIONS = [
+  { value: "blood", label: "Blood" },
+  { value: "urine", label: "Urine" },
+]; //easier to add more options later
+
+
 type LabTest = {
   doc_id: string;
   labtest_id: number;
@@ -32,7 +38,16 @@ type LabTest = {
   mrp: number;
   image_url?: string;
   report_time: Timestamp | string;
+   active: boolean;
+   symptoms: string[];
 };
+
+type Symptom = {
+  id: string;
+  name: string;
+  valid: boolean;
+};
+
 
 const formatDate = (date: any) => {
   if (!date) return "";
@@ -40,7 +55,7 @@ const formatDate = (date: any) => {
   if (date instanceof Timestamp)
     return date.toDate().toISOString().split("T")[0];
   return "";
-};
+}; //this exists because report_time
 
 export default function LabTestsPage() {
   const [labTests, setLabTests] = useState<LabTest[]>([]);
@@ -51,6 +66,13 @@ export default function LabTestsPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  const [symptoms, setSymptoms] = useState<Symptom[]>([]);
+  const [selectedSymptom, setSelectedSymptom] = useState<string>("");
+
+  const [symptomDropdownOpen, setSymptomDropdownOpen] = useState(false);
+
+
 
   type LabTestForm = Omit<LabTest, "doc_id">;
 
@@ -65,22 +87,45 @@ export default function LabTestsPage() {
     mrp: 0,
     image_url: "",
     report_time: "",
+     active: true,
+     symptoms: [],
   });
 
   /* ================= FETCH ================= */
 
   const fetchLabTests = async () => {
     const snapshot = await getDocs(collection(db, "lab_tests"));
-    const data = snapshot.docs.map((d) => ({
-      ...(d.data() as Omit<LabTest, "doc_id">),
-      doc_id: d.id,
-    }));
+   const data = snapshot.docs.map((d) => {
+  const raw = d.data() as any;
+
+  return {
+    ...raw,
+    symptoms: Array.isArray(raw.symptoms) ? raw.symptoms : [], // ✅ FIX
+    doc_id: d.id,
+  };
+});
+
     setLabTests(data);
   };
 
   useEffect(() => {
     fetchLabTests();
+    fetchSymptoms();
   }, []);
+
+
+  const fetchSymptoms = async () => {
+  const snap = await getDocs(collection(db, "symptoms"));
+  const data = snap.docs
+    .map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<Symptom, "id">),
+    }))
+    .filter((s) => s.valid); // ✅ only valid symptoms
+
+  setSymptoms(data);
+};
+
 
   /* ================= IMAGE UPLOAD ================= */
 
@@ -101,25 +146,7 @@ export default function LabTestsPage() {
 
   const handleSave = async () => {
   try {
-    let reportTimeValue: Date;
-
-    // ✅ Normalize report_time safely
-    if (formData.report_time instanceof Timestamp) {
-      reportTimeValue = formData.report_time.toDate();
-    } else if (
-      typeof formData.report_time === "string" &&
-      formData.report_time.trim() !== ""
-    ) {
-      const parsed = new Date(formData.report_time);
-      if (isNaN(parsed.getTime())) {
-        alert("Invalid report time");
-        return;
-      }
-      reportTimeValue = parsed;
-    } else {
-      alert("Report time is required");
-      return;
-    }
+     const reportTimeValue = new Date();
 
     let imageUrl: string | undefined = formData.image_url;
 
@@ -181,6 +208,7 @@ await fetchLabTests();
   const closeDrawer = () => {
     setIsDrawerOpen(false);
     setEditingId(null);
+    setSymptomDropdownOpen(false);
     setImageFile(null);
     setImagePreview(null);
     setFormData({
@@ -194,12 +222,38 @@ await fetchLabTests();
       mrp: 0,
       image_url: "",
       report_time: "",
+      active: true,
+      symptoms: [],
     });
   };
 
-  const filteredLabTests = labTests.filter((t) =>
-  (t.name || "").toLowerCase().includes(searchTerm.toLowerCase())
-);
+  const filteredLabTests = labTests.filter((t) => {
+  const matchesSearch =
+    (t.name || "")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+
+  const matchesSymptom =
+    !selectedSymptom || t.symptoms?.includes(selectedSymptom);
+
+  return matchesSearch && matchesSymptom;
+});
+
+
+const toggleSymptom = (id: string) => {
+  setFormData((prev) => {
+    const exists = prev.symptoms.includes(id);
+
+    return {
+      ...prev,
+      symptoms: exists
+        ? prev.symptoms.filter((s) => s !== id)
+        : [...prev.symptoms, id],
+    };
+  });
+};
+
+
   
 
   return (
@@ -215,6 +269,25 @@ await fetchLabTests();
     marginBottom: "15px",
   }}
 >
+
+  <select
+  className="form-control"
+  style={{ width: "220px" }}
+  value={selectedSymptom}
+  onChange={(e) => setSelectedSymptom(e.target.value)}
+>
+  <option value="">All Symptoms</option>
+  {symptoms.map((s) => (
+    <option key={s.id} value={s.id}>
+      {s.name}
+    </option>
+  ))}
+</select>
+
+
+
+
+
   {/* SEARCH */}
   <input
     className="form-control"
@@ -239,6 +312,8 @@ await fetchLabTests();
     mrp: 0,
     image_url: "",
     report_time: "",
+    active: true,
+    symptoms: [],
   });
   setImageFile(null);
   setImagePreview(null);
@@ -262,6 +337,7 @@ await fetchLabTests();
             <th>Fasting</th>
             <th>MRP</th>
             <th>Report Time</th>
+            <th>Status</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -275,6 +351,14 @@ await fetchLabTests();
               <td>{t.fasting_required ? "Yes" : "No"}</td>
               <td>₹{t.mrp}</td>
               <td>{formatDate(t.report_time)}</td>
+              <td>
+  {t.active ? (
+    <span className="badge badge-success">Active</span>
+  ) : (
+    <span className="badge badge-secondary">Inactive</span>
+  )}
+</td>
+
 
               <td className="relative">
                   <a className="action-btn" href="#">
@@ -294,10 +378,12 @@ await fetchLabTests();
                <a href="#"
                   onClick={() => {
                     setEditingId(t.doc_id);
-                    setFormData({
-                      ...t,
-                      report_time: formatDate(t.report_time),
-                    });
+                   setFormData({
+  ...t,
+  symptoms: Array.isArray(t.symptoms) ? t.symptoms : [], // ✅ FIX
+  report_time: formatDate(t.report_time),
+});
+
                     setImagePreview(t.image_url || null);
                     setIsDrawerOpen(true);
                   }}
@@ -369,32 +455,103 @@ await fetchLabTests();
           <hr />
 
           {/* FORM */}
-          <input
-            className="form-control mb-2"
-            placeholder="Test Name"
-            value={formData.name}
-            onChange={(e) =>
-              setFormData({ ...formData, name: e.target.value })
-            }
-          />
+          <div className="form-group mb-2">
+  <label>Test Name</label>
+  <input
+    className="form-control"
+    value={formData.name}
+    onChange={(e) =>
+      setFormData({ ...formData, name: e.target.value })
+    }
+  />
+</div>
 
-          <textarea
-            className="form-control mb-2"
-            placeholder="Description"
-            value={formData.description}
-            onChange={(e) =>
-              setFormData({ ...formData, description: e.target.value })
-            }
-          />
+        <div className="form-group mb-2">
+  <label>Description</label>
+  <textarea
+    className="form-control"
+    value={formData.description}
+    onChange={(e) =>
+      setFormData({ ...formData, description: e.target.value })
+    }
+  />
+</div>
 
+        <div className="form-group mb-2">
+  <label>Sample Type</label>
+  <select
+    className="form-control"
+    value={formData.sample_type}
+    onChange={(e) =>
+      setFormData({ ...formData, sample_type: e.target.value })
+    }
+  >
+    <option value="">Select sample type</option>
+
+    {SAMPLE_TYPE_OPTIONS.map((option) => (
+      <option key={option.value} value={option.value}>
+        {option.label}
+      </option>
+    ))}
+  </select>
+</div>
+
+
+<div className="form-group mb-2" style={{ position: "relative" }}>
+  <label>Symptoms</label>
+
+  {/* DROPDOWN BUTTON */}
+  <div
+    className="form-control"
+    style={{ cursor: "pointer" }}
+    onClick={() => setSymptomDropdownOpen((p) => !p)}
+  >
+    {formData.symptoms.length > 0
+      ? `${formData.symptoms.length} symptom(s) selected`
+      : "Select symptoms"}
+  </div>
+
+  {/* DROPDOWN LIST */}
+  {symptomDropdownOpen && (
+    <div
+      style={{
+        position: "absolute",
+        top: "100%",
+        left: 0,
+        right: 0,
+        background: "#fff",
+        border: "1px solid #ddd",
+        borderRadius: "4px",
+        zIndex: 1000,
+        padding: "8px",
+      }}
+    >
+      {symptoms.map((s) => (
+        <label
+          key={s.id}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            cursor: "pointer",
+            marginBottom: "6px",
+          }}
+        >
           <input
-            className="form-control mb-2"
-            placeholder="Sample Type"
-            value={formData.sample_type}
-            onChange={(e) =>
-              setFormData({ ...formData, sample_type: e.target.value })
-            }
+            type="checkbox"
+            checked={formData.symptoms.includes(s.id)}
+            onChange={() => toggleSymptom(s.id)}
           />
+          {s.name}
+        </label>
+      ))}
+    </div>
+  )}
+</div>
+
+
+
+
 
           <label className="mb-2 d-block">
             <input
@@ -410,43 +567,49 @@ await fetchLabTests();
             Fasting Required
           </label>
 
-          <input
-            type="number"
-            className="form-control mb-2"
-            placeholder="MRP"
-            value={formData.mrp}
-            onChange={(e) =>
-              setFormData({ ...formData, mrp: Number(e.target.value) })
-            }
-          />
-
-         <input
-  type="date"
-  className="form-control mb-2"
-  value={
-    typeof formData.report_time === "string"
-      ? formData.report_time
-      : formData.report_time instanceof Timestamp
-      ? formData.report_time.toDate().toISOString().split("T")[0]
-      : ""
-  }
-  onChange={(e) =>
-    setFormData({ ...formData, report_time: e.target.value })
-  }
-/>
+          <label className="mb-2 d-block">
+  <input
+    type="checkbox"
+    checked={formData.active}
+    onChange={(e) =>
+      setFormData({ ...formData, active: e.target.checked })
+    }
+  />{" "}
+  Active
+</label>
 
 
-          <input
-            type="file"
-            accept="image/*"
-            className="form-control mb-2"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              setImageFile(file);
-              setImagePreview(URL.createObjectURL(file));
-            }}
-          />
+          <div className="form-group mb-2">
+  <label>MRP</label>
+  <input
+    type="number"
+    className="form-control"
+    value={formData.mrp}
+    onChange={(e) =>
+      setFormData({ ...formData, mrp: Number(e.target.value) })
+    }
+  />
+</div>
+
+
+        
+
+
+          <div className="form-group mb-2">
+  <label>Test Image</label>
+  <input
+    type="file"
+    accept="image/*"
+    className="form-control"
+    onChange={(e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }}
+  />
+</div>
+
 
           {imagePreview && (
             <img

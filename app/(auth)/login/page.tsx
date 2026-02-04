@@ -1,14 +1,26 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState } from "react"; //purpose to make specific components and functions from the React library availabe for use within that file
+import { useRouter } from "next/navigation"; //to programmitically navigate between routes amd refresh data; this is related to router.push
 
 const Login: React.FC = () => {
-  const router = useRouter();
+  const router = useRouter(); // to programmatically manage page navigation, such as pushing new routes, replacing current history, or moving back/forward. It is essential for navigation based on user events (e.g., button clicks) or conditional logic. 
 
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  {/* What this means:
+
+Each input:
+
+Is controlled by React
+
+Always reflects component state
+
+Updates via onChange
+
+This is standard React, not Next.js-specific.
+    */}
 
   return (
     <div className="ad-auth-wrapper">
@@ -38,10 +50,15 @@ const Login: React.FC = () => {
                     }
 
                     // ✅ Auth flag for middleware
-                    document.cookie = "auth=logged_in; path=/";
+                    //document.cookie is a browser API, used to create, read and update cookies, cookies are sent automatically with every HTTP request
+                    document.cookie = "auth=logged_in; path=/"; // path=/ Cookie is available on all routes
+
+                    // auth - cookie name
+                    //logged_in - cookie value
                     
 
-                    router.push("/dashboard");
+                    router.push("/dashboard"); // url changes to /dashboard, next js fetches the page, react renders it
+                    // main purpose of router.push is client-side naviagtion, no full page reload, SPA style transition
                   }}
                 >
                   <a href="/" className="ad-auth-logo">

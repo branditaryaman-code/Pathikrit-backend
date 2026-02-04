@@ -33,7 +33,7 @@ export default function Header() {
           {/* ===== LEFT TOGGLE ===== */}
           <div className="header-left">
             <div className="header-links">
-              <button className="toggle-btn" type="button">
+              <button className="toggle-btn" type="button" style={{borderStyle: 'none', background: 'none' }}>
                 <span></span>
               </button>
             </div>
@@ -43,7 +43,7 @@ export default function Header() {
           <div className="header-controls">
             {/* ===== NOTIFICATION ===== */}
             <div className="notification-wrapper header-links">
-              <button className="notification-info" type="button">
+              <button className="notification-info" type="button" style={{borderStyle: 'none', background: 'none'}}>
                 <span className="header-icon">
                   <svg
                     viewBox="0 0 512 512"
@@ -93,7 +93,7 @@ export default function Header() {
 
             {/* ===== USER INFO ===== */}
             <div className="user-info-wrapper header-links">
-              <button className="user-info" type="button">
+              <button className="user-info" type="button" style={{borderStyle: 'none', background: 'none'}}>
                 <img
                   src="/assets/images/user.jpg"
                   alt="User"

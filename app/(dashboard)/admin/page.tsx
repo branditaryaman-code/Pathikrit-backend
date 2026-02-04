@@ -21,6 +21,9 @@ type Admin = {
   password: string;
   permissions: string[];
   active: boolean;
+  isSuperAdmin?: boolean; 
+ //since in firestore there is isSuperAdmin: true, and in other admins this field does not exist;
+ //therefore typescript needs to be told that this field may or may not exist
 };
 
 /* ================= CONSTANTS ================= */
@@ -44,6 +47,13 @@ export default function AdminsPage() {
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null);
+
+  const [showPassword, setShowPassword] = useState(false); //if false password hidden, if true password visible, this state controls the <input type>
+ 
+
+const isSuperAdmin = (admin: Admin) => admin.isSuperAdmin === true;
+
+//keeps JSX clean, easy to change logic later
 
   const [formData, setFormData] = useState<Omit<Admin, "id">>({
     name: "",
@@ -122,7 +132,7 @@ export default function AdminsPage() {
         phonenumber: formData.phonenumber,
         password: formData.password,
         permissions: formData.permissions,
-        active: true,
+        active: formData.active,
       });
     } else {
       await addDoc(collection(db, "admins"), {
@@ -130,7 +140,7 @@ export default function AdminsPage() {
         phonenumber: formData.phonenumber,
         password: formData.password,
         permissions: formData.permissions,
-        active: true,
+        active: formData.active,
         createdAt: serverTimestamp(),
       });
     }
@@ -174,7 +184,7 @@ export default function AdminsPage() {
                     onChange={(e) => setSearch(e.target.value)}
                   />
                 </li>
-                <li>
+                <li style={{ marginLeft: "10px" }}>
                   <button className="btn btn-primary" onClick={openAdd}>
                     + Add Admin
                   </button>
@@ -202,18 +212,19 @@ export default function AdminsPage() {
                       <th>Name</th>
                       <th>Phone</th>
                       <th>Permissions</th>
+                      <th>Status</th>
                       <th>Action</th>
                     </tr>
                   </thead>
 
-                  <tbody>
+                  <tbody suppressHydrationWarning>
                     {filteredAdmins.map((a, i) => (
                       <tr key={a.id}>
                         <td>{i + 1}</td>
                         <td>{a.name}</td>
                         <td>{a.phonenumber}</td>
                         <td>{a.permissions?.join(", ")}</td>
-
+                        <td>{a.active ? "Active" : "Inactive"}</td> 
                         <td className="relative">
                           <a className="action-btn">
                             <svg
@@ -227,19 +238,23 @@ export default function AdminsPage() {
                           </a>
 
                           <div className="action-option">
-                            <ul>
+                          <ul>
                               <li>
-                                <a onClick={() => openEdit(a)}>
-                                  <i className="far fa-edit mr-2"></i>Edit
-                                </a>
+                              <a onClick={() => openEdit(a)}>
+                              <i className="far fa-edit mr-2"></i>Edit
+                              </a>
                               </li>
-                              <li>
-                                <a onClick={() => deleteAdmin(a.id)}>
-                                  <i className="far fa-trash-alt mr-2"></i>
-                                  Delete
-                                </a>
-                              </li>
-                            </ul>
+                            
+                            {!isSuperAdmin(a) && (
+                             <li>
+                             <a onClick={() => deleteAdmin(a.id)}>
+                             <i className="far fa-trash-alt mr-2"></i>Delete
+                            </a>
+                            </li>
+                             )}
+                             
+                          </ul>
+
                           </div>
                         </td>
                       </tr>
@@ -305,16 +320,33 @@ export default function AdminsPage() {
           </div>
 
  {/* Password */}
-          <div className="form-group">
-  <label>Password</label>
+          <div className="form-group" style={{ position: "relative" }}>
+ <label>Password</label>
+
   <input
-    type="password"
+    type={showPassword ? "text" : "password"} //toggles between "password" → dots and "text" → readable password
     className="form-control"
     value={formData.password}
     onChange={(e) =>
       setFormData({ ...formData, password: e.target.value })
     }
   />
+
+  {/* Eye icon */}
+  <span
+    onClick={() => setShowPassword((prev) => !prev)} //toggles the boolean, react re-enders, input switches type instantly
+    style={{ //places eye inside the input, does not break layout and matches UI patterns
+      position: "absolute",
+      right: "12px",
+      top: "38px",
+      cursor: "pointer",
+      userSelect: "none",
+      fontSize: "14px",
+      color: "#666",
+    }}
+  >
+    {showPassword ? "🙈" : "👁️"}
+  </span>
 </div>
 
 
@@ -390,6 +422,24 @@ export default function AdminsPage() {
     </div>
   )}
 </div>
+
+ {/*Active Status */}
+ <div className="form-group">
+  <label>
+    <input
+      type="checkbox"
+      checked={formData.active}
+      onChange={(e) =>
+        setFormData({
+          ...formData,
+          active: e.target.checked,
+        })
+      }
+    />{" "}
+    Active
+  </label>
+</div>
+
 
 
           <button className="btn btn-primary mt-3" onClick={handleSave}>

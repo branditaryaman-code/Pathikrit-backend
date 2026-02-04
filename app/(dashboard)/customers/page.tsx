@@ -35,9 +35,9 @@ type Order = {
 /* ================= PAGE ================= */
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [openActionId, setOpenActionId] = useState<string | null>(null);
+  const [customers, setCustomers] = useState<Customer[]>([]); //users who placed orders
+  const [orders, setOrders] = useState<Order[]>([]); //raw order data
+  const [openActionId, setOpenActionId] = useState<string | null>(null); //controls which customer's 3-dot menu is open
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null
   );
@@ -51,19 +51,19 @@ export default function CustomersPage() {
 
   const fetchCustomers = async () => {
     // 1️⃣ Fetch all orders
-    const ordersSnap = await getDocs(collection(db, "orders"));
+    const ordersSnap = await getDocs(collection(db, "orders")); //orders tells you who is a customer, reads all order documents from firestore, returns raw order data
 
     const ordersData: Order[] = ordersSnap.docs.map((d) => ({
       id: d.id,
       ...(d.data() as any),
-    }));
+    })); //firestore doc id
 
-    setOrders(ordersData);
+    setOrders(ordersData); // now orders state contain order data; count orders per customer
 
     // 2️⃣ Get unique userIds who placed orders
     const userIds = Array.from(
       new Set(ordersData.map((o) => o.userId))
-    );
+    ); // prevents duplicates, finds only users who placed orders 
 
     if (userIds.length === 0) return;
 
@@ -72,9 +72,9 @@ export default function CustomersPage() {
 
     const usersData: Customer[] = usersSnap.docs
       .map((d) => d.data() as any)
-      .filter((u) => userIds.includes(u.userId));
+      .filter((u) => userIds.includes(u.userId)); //this filters users to only customers
 
-    setCustomers(usersData);
+    setCustomers(usersData); //Show customer list
   };
 
   /* ================= OPEN ORDERS ================= */
@@ -89,13 +89,85 @@ export default function CustomersPage() {
 
   /* ================= UI ================= */
 
+const downloadCSV = () => {
+  if (customers.length === 0) {
+    alert("No customers to download");
+    return;
+  }
+
+  const headers = [
+    "Name",
+    "Email",
+    "Phone",
+    "Total Orders",
+    "Joined Date",
+  ];
+
+  const rows = customers.map((c) => {
+    const totalOrders = orders.filter(
+      (o) => o.userId === c.userId
+    ).length;
+
+    return [
+      c.name || "",
+      c.email || "",
+      c.phone || "",
+      totalOrders,
+      c.created_at?.toDate
+        ? c.created_at.toDate().toLocaleDateString()
+        : "",
+    ];
+  });
+
+  const csvContent =
+    [headers, ...rows]
+      .map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+      )
+      .join("\n");
+
+  const blob = new Blob([csvContent], {
+    type: "text/csv;charset=utf-8;",
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `customers_${new Date()
+    .toISOString()
+    .slice(0, 10)}.csv`;
+  link.click();
+
+  URL.revokeObjectURL(url);
+};
+
+
+
+
+
+
   return (
     <>
       {/* ===== TABLE ===== */}
       <div className="card table-card">
-        <div className="card-header pb-0">
-          <h4>Customers List</h4>
-        </div>
+       <div
+  className="card-header pb-0"
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  }}
+>
+  <h4>Customers List</h4>
+
+  <button
+    className="btn btn-outline-primary"
+    onClick={downloadCSV}
+  >
+    ⬇ Download CSV
+  </button>
+</div>
+
 
         <div className="card-body">
           <table className="table table-styled">
@@ -123,12 +195,12 @@ export default function CustomersPage() {
                       orders.filter(
                         (o) => o.userId === c.userId
                       ).length
-                    }
+                    }{/*How many orders does this customer have? that count comes directly from order data, number of orders this customer has, no database query needed*/}
                   </td>
                   <td>
                     {c.created_at?.toDate
                       ? c.created_at.toDate().toLocaleDateString()
-                      : "-"}
+                      : "-"} {/*handles firestore timestamp */}
                   </td>
 
                   {/* ACTION */}
@@ -140,9 +212,9 @@ export default function CustomersPage() {
                           openActionId === c.userId
                             ? null
                             : c.userId
-                        )
-                      }
-                    >
+                        ) 
+                      } 
+                    > {/*this ensures Only one menu opens at a time, clicking again closes it*/}
                       <svg
                         className="default-size"
                         viewBox="0 0 341.333 341.333"

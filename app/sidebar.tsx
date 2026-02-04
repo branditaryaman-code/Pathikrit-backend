@@ -5,6 +5,8 @@ import React, { useState } from "react";
 
 const Sidebar: React.FC = () => {
    const [isStaticOpen, setIsStaticOpen] = useState(false);
+   const [isOrdersOpen, setIsOrdersOpen] = useState(false);
+
   return (
     <aside className="sidebar-wrapper">
       
@@ -73,26 +75,7 @@ const Sidebar: React.FC = () => {
 
 
 
-          {/* Products */}
-          <li>
-            <a href="/all-product">
-              <span className="icon-menu feather-icon">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                </svg>
-              </span>
-              <span className="menu-text">Products</span>
-            </a>
-          </li>
-
+         
            
 
 
@@ -106,6 +89,19 @@ const Sidebar: React.FC = () => {
                             </span>
                             <span className="menu-text">
                                Doctors
+                            </span>
+                        </a>
+                    </li>
+
+
+                    {/* =====Appointments ===== */}
+                     <li>
+                        <a href="/appointments">
+                            <span className="icon-menu feather-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-users"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                            </span>
+                            <span className="menu-text">
+                               Appointments
                             </span>
                         </a>
                     </li>
@@ -196,24 +192,37 @@ const Sidebar: React.FC = () => {
       e.preventDefault();
       setIsStaticOpen(!isStaticOpen);
     }}
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+    }}
   >
-    <span className="icon-menu feather-icon">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M4 4h16v16H4z" />
-        <path d="M4 9h16" />
-        <path d="M4 14h16" />
-      </svg>
-    </span>
+    <span
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+      }}
+    >
+      <span className="icon-menu feather-icon">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M4 4h16v16H4z" />
+          <path d="M4 9h16" />
+          <path d="M4 14h16" />
+        </svg>
+      </span>
 
-    <span className="menu-text">Static Pages</span>
+      <span className="menu-text">Static Pages</span>
+    </span>
 
     <span className="menu-arrow">
       {isStaticOpen ? "▾" : "▸"}
@@ -224,13 +233,14 @@ const Sidebar: React.FC = () => {
     <ul className="submenu">
       <li><a href="/about">About</a></li>
       <li><a href="/mission">Our Mission</a></li>
-       <li><a href="/vision">Our Vision</a></li>
+      <li><a href="/vision">Our Vision</a></li>
       <li><a href="/terms">Terms & Conditions</a></li>
       <li><a href="/privacy">Privacy Policy</a></li>
       <li><a href="/cancellation">Cancellation Policy</a></li>
     </ul>
   )}
 </li>
+
 
 
 
@@ -271,27 +281,35 @@ const Sidebar: React.FC = () => {
 
 
           {/* Orders */}
-          <li>
-            <a href="/orders">
-              <span className="icon-menu feather-icon">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="1" y="3" width="15" height="13" />
-                  <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-                  <circle cx="5.5" cy="18.5" r="2.5" />
-                  <circle cx="18.5" cy="18.5" r="2.5" />
-                </svg>
-              </span>
-              <span className="menu-text">Orders</span>
-            </a>
-          </li>
+       {/* ===== Orders Dropdown ===== */}
+<li className={`has-submenu ${isOrdersOpen ? "open" : ""}`}>
+  <a
+    href="#"
+    onClick={(e) => {
+      e.preventDefault();
+      setIsOrdersOpen(!isOrdersOpen);
+    }}
+  >
+    <span className="menu-text">Orders</span>
+
+    <span className="menu-arrow">
+      {isOrdersOpen ? "▾" : "▸"}
+    </span>
+  </a>
+
+  {isOrdersOpen && (
+    <ul className="submenu">
+      <li>
+        <a href="/orders/pending">Pending Orders</a>
+      </li>
+      <li>
+        <a href="/orders/completed">Completed Orders</a>
+      </li>
+    </ul>
+  )}
+</li>
+
+
 
           {/* Customers */}
           <li>

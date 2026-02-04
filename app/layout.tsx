@@ -39,7 +39,7 @@ export default function RootLayout({
 
         <Script
           src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
-          strategy="afterInteractive"
+          strategy="afterInteractive" //Load after page becomes interactive, Does not block rendering, Safe for DOM-dependent scripts
         />
       </body>
     </html>

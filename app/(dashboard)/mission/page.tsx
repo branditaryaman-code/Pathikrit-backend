@@ -109,19 +109,7 @@ export default function MissionPageCard() {
               </div>
             </div>
 
-            {/* Core Values */}
-            <div className="col-md-12">
-              <div className="form-group">
-                <label>Core Values</label>
-                <textarea
-                  name="CoreValues"
-                  className="form-control"
-                  rows={5}
-                  value={formData.CoreValues}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
+            
 
           </div>
 

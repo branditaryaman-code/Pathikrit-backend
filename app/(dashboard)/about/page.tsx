@@ -113,19 +113,7 @@ export default function AboutPageCard() {
               </div>
             </div>
 
-            {/* Main Content */}
-            <div className="col-md-12">
-              <div className="form-group">
-                <label>Main Content</label>
-                <textarea
-                  name="MainContent"
-                  className="form-control"
-                  rows={6}
-                  value={formData.MainContent}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
+           
 
           </div>
 
